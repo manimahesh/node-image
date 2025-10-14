@@ -1,0 +1,89 @@
+name: CI/CD Pipeline to EKS
+
+# Trigger on push to the 'main' branch
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Define environment variables used throughout the workflow
+env:
+  AWS_REGION: us-west-2
+  ECR_REPOSITORY: mmani-node
+  EKS_CLUSTER_NAME: ferocious-party-1760228462 # <-- REPLACE THIS
+  HELM_CHART_PATH: ./helm/mmani-node-app # <-- ADJUST PATH
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC/IRSA authentication to AWS
+
+    steps:
+      # --- CI STAGE: Code Checkout and Test ---
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js for testing
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies and run tests (Example)
+        run: |
+          npm install
+          # npm test # Uncomment if you have tests defined
+
+      # --- CD STAGE 1: Docker Build & ECR Push ---
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # These secrets must be configured in your GitHub repository settings
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }} # e.g., arn:aws:iam::123456789012:role/github-actions-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set Image Tag and ECR URI
+        id: vars
+        run: |
+          # Use short commit SHA as the unique image tag
+          IMAGE_TAG=${{ github.sha }}
+          # Build the full ECR URI: <ECR_URI>/<REPO>:<TAG>
+          ECR_URI="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+          
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "ECR_URI=$ECR_URI" >> $GITHUB_OUTPUT
+
+      - name: Build and Tag Docker Image
+        run: |
+          docker build --platform linux/amd64 -t ${{ steps.vars.outputs.ECR_URI }}:${{ steps.vars.outputs.IMAGE_TAG }} .
+          docker tag ${{ steps.vars.outputs.ECR_URI }}:${{ steps.vars.outputs.IMAGE_TAG }} ${{ steps.vars.outputs.ECR_URI }}:latest
+
+      - name: Push image to ECR
+        run: |
+          docker push ${{ steps.vars.outputs.ECR_URI }}:${{ steps.vars.outputs.IMAGE_TAG }}
+          docker push ${{ steps.vars.outputs.ECR_URI }}:latest
+
+      # --- CD STAGE 2: Deploy to EKS using Helm ---
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to EKS with Helm
+        run: |
+          helm upgrade --install ${{ env.ECR_REPOSITORY }} ${{ env.HELM_CHART_PATH }} \
+            --set image.repository=${{ steps.vars.outputs.ECR_URI }} \
+            --set image.tag=${{ steps.vars.outputs.IMAGE_TAG }} \
+            --namespace default \
+            --create-namespace
