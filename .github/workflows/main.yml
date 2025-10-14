@@ -37,12 +37,10 @@ jobs:
           # npm test # Uncomment if you have tests defined
 
       # --- CD STAGE 1: Docker Build & ECR Push ---
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials - 1
         uses: aws-actions/configure-aws-credentials@v4
         with:
           # These secrets must be configured in your GitHub repository settings
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
 
@@ -71,15 +69,7 @@ jobs:
           docker push ${{ steps.vars.outputs.ECR_URI }}:${{ steps.vars.outputs.IMAGE_TAG }}
           docker push ${{ steps.vars.outputs.ECR_URI }}:latest
 
-      # --- CD STAGE 2: Deploy to EKS using Helm ---
-      - name: Login to ECR Registry for Helm Charts
-        run: |
-          # Use command substitution to pipe the password directly to helm registry login
-          aws ecr get-login-password --region us-west-2 | \
-            helm registry login \
-            --username AWS \
-            --password-stdin ${{ steps.login-ecr.outputs.registry }}
-      
+      # --- CD STAGE 2: Deploy to EKS using Helm ---     
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
 
@@ -89,6 +79,14 @@ jobs:
       - name: Update kubeconfig for EKS
         run: |
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Configure AWS Credentials - 2
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # These secrets must be configured in your GitHub repository settings
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy to EKS with Helm
         run: |
