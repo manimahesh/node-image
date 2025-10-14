@@ -1,0 +1,4 @@
+apiVersion: v2
+name: mmani-node-app
+description: A Helm chart to deploy an ECR-hosted container to EKS
+version: 0.1.0

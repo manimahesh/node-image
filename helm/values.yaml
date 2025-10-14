@@ -1,0 +1,12 @@
+image:
+  repository: 366840108002.dkr.ecr.us-west-2.amazonaws.com/mmani-node
+  tag: latest
+  pullPolicy: Always
+
+service:
+  # For EKS, LoadBalancer creates an AWS Classic/Network Load Balancer
+  type: LoadBalancer 
+  port: 80
+  targetPort: 3000 # The port your Node.js application is listening on (from server.js)
+
+replicaCount: 2
