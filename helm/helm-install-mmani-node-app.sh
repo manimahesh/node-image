@@ -1,0 +1,1 @@
+helm install mmani-node-app ./mmani-node-app
