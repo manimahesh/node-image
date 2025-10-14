@@ -41,7 +41,6 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           # These secrets must be configured in your GitHub repository settings
-          # role-to-assume: arn:aws:iam::366840108002:role/mmani-github-actions
           role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }} # e.g., arn:aws:iam::123456789012:role/github-actions-oidc-role
           aws-region: ${{ env.AWS_REGION }}
 
@@ -71,6 +70,14 @@ jobs:
           docker push ${{ steps.vars.outputs.ECR_URI }}:latest
 
       # --- CD STAGE 2: Deploy to EKS using Helm ---
+      - name: Login to ECR Registry for Helm Charts
+        run: |
+          # Use command substitution to pipe the password directly to helm registry login
+          aws ecr get-login-password --region us-west-2 | \
+            helm registry login \
+            --username AWS \
+            --password-stdin ${{ steps.login-ecr.outputs.registry }}
+      
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
 
