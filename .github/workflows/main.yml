@@ -41,7 +41,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           # These secrets must be configured in your GitHub repository settings
-          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }} # e.g., arn:aws:iam::123456789012:role/github-actions-oidc-role
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
