@@ -4,6 +4,9 @@ const express = require('express');
 const app = express();
 const port = 80;
 
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database(':memory:');
+
 // Route handler for the root path ("/")
 app.get('/', (req, res) => {
     // Send the "Hello World!" text as the response
