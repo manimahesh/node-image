@@ -11,7 +11,7 @@ on:
 env:
   AWS_REGION: us-west-2
   ECR_REPOSITORY: mmani-node
-  EKS_CLUSTER_NAME: ferocious-party-1760228462 # <-- REPLACE THIS
+  EKS_CLUSTER_NAME: attractive-mushroom-1761238386 # <-- REPLACE THIS
   HELM_CHART_PATH: ./helm/mmani-node-app # <-- ADJUST PATH
 
 jobs:
