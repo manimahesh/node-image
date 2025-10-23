@@ -1,5 +1,5 @@
 image:
-  repository: 366840108002.dkr.ecr.us-west-2.amazonaws.com/mmani-node
+  repository: 623386377217.dkr.ecr.us-west-2.amazonaws.com/mmani-node
   tag: latest
   pullPolicy: Always
 
